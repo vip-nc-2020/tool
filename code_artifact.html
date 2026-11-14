@@ -1,0 +1,2176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="format-detection" content="telephone=no">
+    <title>复利与聚宝收益对比测算</title>
+    <style>
+        :root {
+            --bg-body: #0b0e14;
+            --bg-card: #141923;
+            --bg-subcard: #0e121a;
+            --bg-input: #090c12;
+            --bg-chip: #1c2331;
+
+            --border-subtle: rgba(148, 163, 184, 0.14);
+            --border-strong: rgba(148, 163, 184, 0.28);
+
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --text-dim: #64748b;
+
+            /* 方案 A（青蓝色系） */
+            --blue: #38bdf8;
+            --blue-light: #7dd3fc;
+            --blue-bg: rgba(56, 189, 248, 0.14);
+            --blue-border: rgba(56, 189, 248, 0.38);
+
+            /* 方案 B（亮金色系） */
+            --gold: #f5b041;
+            --gold-bright: #ffd166;
+            --gold-bg: rgba(245, 176, 65, 0.15);
+            --gold-border: rgba(255, 209, 102, 0.42);
+
+            /* 利润翠绿色 */
+            --green: #10b981;
+            --green-light: #34d399;
+            --green-bg: rgba(16, 185, 129, 0.14);
+            --green-border: rgba(52, 211, 153, 0.32);
+
+            --radius-xl: 18px;
+            --radius-lg: 14px;
+            --radius-md: 10px;
+            --radius-sm: 8px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.45;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .num {
+            font-variant-numeric: tabular-nums;
+            font-feature-settings: "tnum";
+        }
+
+        /* 强制保障所有交互控件可点击、不被遮挡 */
+        button,
+        input,
+        summary {
+            position: relative;
+            z-index: 2;
+            touch-action: manipulation;
+        }
+
+        button {
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .app-wrap {
+            max-width: 820px;
+            margin: 0 auto;
+            padding: 10px 12px 48px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* =========================================
+           1. 顶部首屏：预设场景 + 差额看板 + 增长曲线图
+           ========================================= */
+        .top-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 2px 2px 0;
+        }
+
+        .brand-title {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--gold-bright);
+            letter-spacing: 0.3px;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .brand-badge {
+            font-size: 10.5px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 6px;
+            background: var(--gold-bg);
+            color: var(--gold-bright);
+            border: 1px solid var(--gold-border);
+        }
+
+        /* 4 个一键对比场景预设 */
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+        }
+
+        .preset-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-sub);
+            border-radius: var(--radius-md);
+            padding: 8px 4px;
+            font-size: 12px;
+            font-weight: 700;
+            text-align: center;
+            transition: background 0.15s, border-color 0.15s, color 0.15s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .preset-btn small {
+            font-size: 10px;
+            font-weight: 400;
+            color: var(--text-dim);
+            white-space: nowrap;
+        }
+
+        .preset-btn:active {
+            transform: scale(0.97);
+        }
+
+        .preset-btn.active {
+            background: linear-gradient(135deg, rgba(245, 176, 65, 0.2), rgba(56, 189, 248, 0.1));
+            border-color: var(--gold-bright);
+            color: #ffffff;
+        }
+
+        .preset-btn.active small {
+            color: var(--gold-bright);
+        }
+
+        /* 顶部核心结果 + 增长曲线一体化首屏卡片 */
+        .hero-box {
+            background: linear-gradient(160deg, #131a29 0%, #141923 55%, #181f2e 100%);
+            border: 1px solid var(--gold-border);
+            border-radius: var(--radius-xl);
+            padding: 14px 12px 12px;
+            box-shadow: 0 14px 32px rgba(0, 0, 0, 0.55);
+            position: relative;
+        }
+
+        .hero-box::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 140px;
+            height: 140px;
+            background: radial-gradient(circle at top right, rgba(255, 209, 102, 0.14), transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .diff-head {
+            text-align: center;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-subtle);
+            position: relative;
+            z-index: 1;
+        }
+
+        .diff-label {
+            font-size: 12.5px;
+            font-weight: 600;
+            color: var(--text-sub);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .diff-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--gold-bright);
+            box-shadow: 0 0 8px var(--gold-bright);
+        }
+
+        .diff-dot.blue {
+            background: var(--blue);
+            box-shadow: 0 0 8px var(--blue);
+        }
+
+        .diff-amount {
+            font-size: clamp(26px, 7.2vw, 38px);
+            font-weight: 800;
+            color: var(--gold-bright);
+            line-height: 1.15;
+            margin: 3px 0 5px;
+            letter-spacing: -0.4px;
+            word-break: break-all;
+        }
+
+        .diff-amount.blue {
+            color: var(--blue-light);
+        }
+
+        .diff-pill {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 10px;
+            border-radius: 999px;
+            background: var(--green-bg);
+            color: var(--green-light);
+            border: 1px solid var(--green-border);
+        }
+
+        /* 方案 A / B 最终资产双栏 */
+        .ab-strip {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .ab-mini {
+            background: var(--bg-subcard);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 9px 10px;
+        }
+
+        .ab-mini.b {
+            border-color: rgba(255, 209, 102, 0.28);
+            background: rgba(245, 176, 65, 0.06);
+        }
+
+        .ab-mini-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 11.5px;
+            color: var(--text-sub);
+            margin-bottom: 2px;
+        }
+
+        .ab-mini-name {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .ab-mini-name i {
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+            display: inline-block;
+        }
+
+        .ab-mini.a .ab-mini-name i {
+            background: var(--blue);
+        }
+
+        .ab-mini.b .ab-mini-name i {
+            background: var(--gold-bright);
+        }
+
+        .ab-mini-val {
+            font-size: clamp(16px, 4.4vw, 20px);
+            font-weight: 800;
+            color: #ffffff;
+            word-break: break-all;
+        }
+
+        .ab-mini-sub {
+            font-size: 11px;
+            color: var(--green-light);
+            font-weight: 600;
+            margin-top: 2px;
+        }
+
+        /* 首屏内嵌增长曲线对比图 */
+        .chart-wrap {
+            margin-top: 11px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border-subtle);
+            position: relative;
+            z-index: 1;
+        }
+
+        .chart-topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .chart-title {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .chart-legend {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 11px;
+            color: var(--text-sub);
+            font-weight: 600;
+        }
+
+        .leg-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .leg-line-a {
+            width: 14px;
+            height: 2.5px;
+            background: var(--blue);
+            border-radius: 2px;
+        }
+
+        .leg-line-b {
+            width: 14px;
+            height: 2.5px;
+            background: var(--gold-bright);
+            border-radius: 2px;
+        }
+
+        .canvas-box {
+            position: relative;
+            width: 100%;
+            height: 185px;
+        }
+
+        @media (min-width: 640px) {
+            .canvas-box {
+                height: 230px;
+            }
+        }
+
+        #growthCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: pan-y;
+            cursor: crosshair;
+        }
+
+        .chart-tip-note {
+            text-align: center;
+            font-size: 10.5px;
+            color: var(--text-dim);
+            margin-top: 4px;
+        }
+
+        /* 浮动查看浮窗（严格 pointer-events: none） */
+        .inspect-badge {
+            position: absolute;
+            top: 6px;
+            left: 8px;
+            background: rgba(11, 14, 20, 0.94);
+            border: 1px solid var(--gold-border);
+            border-radius: 9px;
+            padding: 6px 9px;
+            font-size: 11px;
+            line-height: 1.45;
+            color: var(--text-main);
+            pointer-events: none;
+            z-index: 5;
+            opacity: 0;
+            transition: opacity 0.1s ease;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.65);
+            white-space: nowrap;
+        }
+
+        .inspect-badge.visible {
+            opacity: 1;
+        }
+
+        /* =========================================
+           通用设置面板卡片
+           ========================================= */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 14px;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* =========================================
+           2. 推演周期选择器 (30/60/90/180/365天 + 滑块)
+           ========================================= */
+        .days-btn-row {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .day-pill {
+            background: var(--bg-chip);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-sub);
+            border-radius: var(--radius-sm);
+            padding: 9px 2px;
+            font-size: 12.5px;
+            font-weight: 700;
+            text-align: center;
+            transition: all 0.15s ease;
+        }
+
+        .day-pill:active {
+            transform: scale(0.96);
+        }
+
+        .day-pill.active {
+            background: var(--gold-bg);
+            border-color: var(--gold-bright);
+            color: var(--gold-bright);
+        }
+
+        .slider-info-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12.5px;
+            color: var(--text-sub);
+            margin-bottom: 6px;
+        }
+
+        .slider-info-row strong {
+            color: var(--gold-bright);
+            font-weight: 800;
+        }
+
+        input[type="range"].gold-range {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 7px;
+            border-radius: 999px;
+            background: #232b3b;
+            outline: none;
+            cursor: pointer;
+        }
+
+        input[type="range"].gold-range::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--gold-bright);
+            border: 3px solid #141923;
+            box-shadow: 0 0 0 2px rgba(255, 209, 102, 0.45);
+            cursor: pointer;
+        }
+
+        input[type="range"].gold-range::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--gold-bright);
+            border: 3px solid #141923;
+            box-shadow: 0 0 0 2px rgba(255, 209, 102, 0.45);
+            cursor: pointer;
+        }
+
+        /* =========================================
+           3. 收益参数设置（左右双向联动纯数字输入）
+           ========================================= */
+        .rate-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .rate-field {
+            background: var(--bg-subcard);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 10px;
+        }
+
+        .rate-field label {
+            display: block;
+            font-size: 11.5px;
+            font-weight: 600;
+            color: var(--text-sub);
+            margin-bottom: 6px;
+        }
+
+        .num-box {
+            display: flex;
+            align-items: center;
+            background: var(--bg-input);
+            border: 1.5px solid var(--border-strong);
+            border-radius: var(--radius-sm);
+            padding: 0 10px;
+            height: 42px;
+        }
+
+        .num-box:focus-within {
+            border-color: var(--gold-bright);
+        }
+
+        .num-box input {
+            width: 100%;
+            border: none;
+            background: transparent;
+            color: #ffffff;
+            font-size: 17px;
+            font-weight: 800;
+            outline: none;
+        }
+
+        .num-box input::-webkit-inner-spin-button,
+        .num-box input::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .num-box span {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--gold-bright);
+            margin-left: 4px;
+        }
+
+        .rate-helper {
+            margin-top: 9px;
+            font-size: 11.5px;
+            color: var(--text-dim);
+            line-height: 1.5;
+        }
+
+        /* =========================================
+           4. 方案 A & 方案 B 独立配置卡片
+           ========================================= */
+        .plans-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        @media (min-width: 720px) {
+            .plans-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .plan-card {
+            border-top: 3px solid var(--blue);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .plan-card.plan-b {
+            border-top-color: var(--gold-bright);
+        }
+
+        .plan-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .plan-badge {
+            font-size: 13.5px;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 8px;
+        }
+
+        .plan-a .plan-badge {
+            background: var(--blue-bg);
+            color: var(--blue-light);
+            border: 1px solid var(--blue-border);
+        }
+
+        .plan-b .plan-badge {
+            background: var(--gold-bg);
+            color: var(--gold-bright);
+            border: 1px solid var(--gold-border);
+        }
+
+        .field-block {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .field-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: var(--text-sub);
+        }
+
+        .cap-chips {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 5px;
+        }
+
+        .cap-chip {
+            background: var(--bg-chip);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-sub);
+            border-radius: 7px;
+            padding: 7px 2px;
+            font-size: 11.5px;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .plan-a .cap-chip.active {
+            background: var(--blue-bg);
+            border-color: var(--blue);
+            color: var(--blue-light);
+        }
+
+        .plan-b .cap-chip.active {
+            background: var(--gold-bg);
+            border-color: var(--gold-bright);
+            color: var(--gold-bright);
+        }
+
+        /* 独立按钮式开关行（避免隐藏 checkbox 触控失效） */
+        .toggle-card {
+            background: var(--bg-subcard);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 10px 11px;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .toggle-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .toggle-btn {
+            border-radius: 999px;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 700;
+            border: 1px solid var(--border-strong);
+            background: var(--bg-chip);
+            color: var(--text-sub);
+            min-width: 104px;
+            text-align: center;
+            transition: all 0.15s ease;
+        }
+
+        .plan-a .toggle-btn.on {
+            background: var(--blue-bg);
+            border-color: var(--blue);
+            color: var(--blue-light);
+        }
+
+        .plan-b .toggle-btn.on {
+            background: var(--gold-bg);
+            border-color: var(--gold-bright);
+            color: var(--gold-bright);
+        }
+
+        .live-stat-line {
+            font-size: 11.5px;
+            font-weight: 600;
+            color: var(--green-light);
+            background: rgba(16, 185, 129, 0.08);
+            border-radius: 6px;
+            padding: 4px 8px;
+        }
+
+        .live-stat-line.muted {
+            color: var(--text-dim);
+            background: rgba(100, 116, 139, 0.1);
+        }
+
+        /* 直推下级分段选择按钮 */
+        .seg-row-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+        }
+
+        .seg-row-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+        }
+
+        .seg-row-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 5px;
+        }
+
+        .seg-pill {
+            background: var(--bg-chip);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-sub);
+            border-radius: 7px;
+            padding: 8px 4px;
+            font-size: 12px;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .plan-a .seg-pill.active {
+            background: var(--blue);
+            border-color: var(--blue);
+            color: #0b0e14;
+        }
+
+        .plan-b .seg-pill.active {
+            background: var(--gold-bright);
+            border-color: var(--gold-bright);
+            color: #0b0e14;
+        }
+
+        .sub-detail-box {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-top: 8px;
+            border-top: 1px dashed var(--border-subtle);
+        }
+
+        .sub-detail-box.hidden {
+            display: none;
+        }
+
+        .sub-mini-label {
+            font-size: 11.5px;
+            color: var(--text-sub);
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* 卡片底部收益拆解汇总 */
+        .summary-list {
+            background: var(--bg-input);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 10px 11px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            font-size: 12px;
+        }
+
+        .sum-item {
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-sub);
+        }
+
+        .sum-item strong {
+            color: var(--text-main);
+            font-weight: 700;
+        }
+
+        .sum-item strong.green {
+            color: var(--green-light);
+        }
+
+        .sum-item strong.gold {
+            color: var(--gold-bright);
+        }
+
+        .sum-total {
+            margin-top: 4px;
+            padding-top: 6px;
+            border-top: 1px solid var(--border-strong);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 800;
+            font-size: 13px;
+        }
+
+        .plan-a .sum-total span:last-child {
+            color: var(--blue-light);
+            font-size: 15.5px;
+        }
+
+        .plan-b .sum-total span:last-child {
+            color: var(--gold-bright);
+            font-size: 15.5px;
+        }
+
+        /* =========================================
+           5. 底部原生 <details> 规则与阶梯参考表
+           ========================================= */
+        details.ref-details {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 13px 14px;
+        }
+
+        details.ref-details summary {
+            list-style: none;
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        details.ref-details summary::-webkit-details-marker {
+            display: none;
+        }
+
+        details.ref-details[open] summary .chev {
+            transform: rotate(180deg);
+        }
+
+        .chev {
+            transition: transform 0.2s ease;
+            color: var(--gold-bright);
+        }
+
+        .ref-content {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-subtle);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .ref-tables {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        @media (min-width: 620px) {
+            .ref-tables {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .tbl-box {
+            background: var(--bg-subcard);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+        }
+
+        .tbl-head {
+            background: #1b2232;
+            padding: 7px 11px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--gold-bright);
+        }
+
+        table.ref-tbl {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        table.ref-tbl th,
+        table.ref-tbl td {
+            padding: 6px 11px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+            text-align: left;
+        }
+
+        table.ref-tbl th {
+            color: var(--text-dim);
+            font-weight: 600;
+        }
+
+        table.ref-tbl td:last-child,
+        table.ref-tbl th:last-child {
+            text-align: right;
+            color: var(--green-light);
+            font-weight: 700;
+        }
+
+        table.ref-tbl tr:last-child td {
+            border-bottom: none;
+        }
+
+        .formula-note {
+            background: var(--bg-subcard);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 10px 12px;
+            font-size: 12px;
+            color: var(--text-sub);
+            line-height: 1.65;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-wrap">
+    <!-- 顶部品牌标题 -->
+    <header class="top-header">
+        <div class="brand-title">
+            <span>复利与聚宝收益对比测算</span>
+        </div>
+        <span class="brand-badge">A / B 双方案实时推演</span>
+    </header>
+
+    <!-- 4 个快速场景对比预设按钮 -->
+    <nav class="preset-grid" aria-label="快捷对比场景">
+        <button type="button" class="preset-btn active" data-preset="capital">
+            <span>本金大小对比</span>
+            <small>1000 vs 2000U</small>
+        </button>
+        <button type="button" class="preset-btn" data-preset="jubao">
+            <span>有无聚宝对比</span>
+            <small>同2000U对比</small>
+        </button>
+        <button type="button" class="preset-btn" data-preset="downline">
+            <span>直推下级对比</span>
+            <small>0人 vs 3下级</small>
+        </button>
+        <button type="button" class="preset-btn" data-preset="full">
+            <span>小额vs满配</span>
+            <small>100U vs 满配</small>
+        </button>
+    </nav>
+
+    <!-- 1. 首屏结果差额高亮看板 + 增长曲线对比图 -->
+    <section class="hero-box" aria-label="核心收益差额与增长曲线">
+        <div class="diff-head">
+            <div class="diff-label">
+                <span class="diff-dot" id="diffDot"></span>
+                <span id="diffTitleText">方案 B 比方案 A 多赚</span>
+            </div>
+            <div class="diff-amount num" id="diffAmountText">+2,299.18 U</div>
+            <div class="diff-pill num" id="diffPctText">纯利润高出 +121.6%</div>
+        </div>
+
+        <div class="ab-strip">
+            <div class="ab-mini a">
+                <div class="ab-mini-top">
+                    <span class="ab-mini-name"><i></i>方案A最终资产</span>
+                    <span class="num" id="roiBadgeA" style="color:#34d399;font-weight:700;">+97.9%</span>
+                </div>
+                <div class="ab-mini-val num" id="finalAssetA">1,979.12 U</div>
+                <div class="ab-mini-sub num" id="netProfitA">净赚 +979.12 U</div>
+            </div>
+
+            <div class="ab-mini b">
+                <div class="ab-mini-top">
+                    <span class="ab-mini-name"><i></i>方案B最终资产</span>
+                    <span class="num" id="roiBadgeB" style="color:#34d399;font-weight:700;">+113.9%</span>
+                </div>
+                <div class="ab-mini-val num" id="finalAssetB">4,278.30 U</div>
+                <div class="ab-mini-sub num" id="netProfitB">净赚 +2,278.30 U</div>
+            </div>
+        </div>
+
+        <!-- 首屏内嵌：双曲线增长对比图 -->
+        <div class="chart-wrap">
+            <div class="chart-topbar">
+                <span class="chart-title">增长曲线对比图</span>
+                <div class="chart-legend">
+                    <span class="leg-item"><i class="leg-line-a"></i>方案 A</span>
+                    <span class="leg-item"><i class="leg-line-b"></i>方案 B</span>
+                </div>
+            </div>
+            <div class="canvas-box" id="canvasBox">
+                <canvas id="growthCanvas"></canvas>
+                <div class="inspect-badge num" id="inspectBadge"></div>
+            </div>
+            <div class="chart-tip-note">手指在曲线上左右滑动，可随时查看任意第 X 天的资产差距</div>
+        </div>
+    </section>
+
+    <!-- 2. 推演周期选择器 -->
+    <section class="card" aria-label="推演周期设置">
+        <div class="card-header">
+            <h2 class="card-title">推演周期</h2>
+        </div>
+
+        <div class="days-btn-row" id="daysBtnRow">
+            <button type="button" class="day-pill num active" data-days="30">30天</button>
+            <button type="button" class="day-pill num" data-days="60">60天</button>
+            <button type="button" class="day-pill num" data-days="90">90天</button>
+            <button type="button" class="day-pill num" data-days="180">180天</button>
+            <button type="button" class="day-pill num" data-days="365">365天</button>
+        </div>
+
+        <div class="slider-info-row">
+            <span id="daysLiveLabel" class="num">当前推演周期：<strong>30</strong> 天（约 <strong>86</strong> 单）</span>
+            <span style="font-size:11px;color:#64748b;">1～365天可调</span>
+        </div>
+        <input type="range" id="daysRange" class="gold-range" min="1" max="365" step="1" value="30">
+    </section>
+
+    <!-- 3. 收益参数设置（双向联动纯数字输入框） -->
+    <section class="card" aria-label="收益参数设置">
+        <div class="card-header">
+            <h2 class="card-title">收益参数设置</h2>
+            <span style="font-size:11px;color:#34d399;font-weight:600;">支持双向自动换算</span>
+        </div>
+
+        <div class="rate-grid">
+            <div class="rate-field">
+                <label for="singleRateInput">每单稳定收益率 (%)</label>
+                <div class="num-box">
+                    <input type="number" id="singleRateInput" class="num" step="0.01" min="0.01" max="10" value="0.80" inputmode="decimal">
+                    <span>%</span>
+                </div>
+            </div>
+
+            <div class="rate-field">
+                <label for="monthlyRateInput">对应纯做单月化率 (%)</label>
+                <div class="num-box">
+                    <input type="number" id="monthlyRateInput" class="num" step="0.1" min="1" max="2000" value="85.3" inputmode="decimal">
+                    <span>%</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="rate-helper">
+            按平日每天 2 单、周末每天 5 单（30天约 86 单）及每单扣除 10% 手续费（按账上 90% 资金计息）自动双向联动测算，不包含首存礼、聚宝及下级佣金额外加成。
+        </div>
+    </section>
+
+    <!-- 4. 方案 A & 方案 B 独立参数配置卡片 -->
+    <section class="plans-grid" aria-label="方案A与方案B独立配置">
+        <!-- 方案 A（对比基准） -->
+        <div class="card plan-card plan-a" id="panelPlanA">
+            <div class="plan-head">
+                <span class="plan-badge">方案 A（对比基准）</span>
+                <span style="font-size:11.5px;color:#64748b;">基准配置</span>
+            </div>
+
+            <!-- 启动资金 -->
+            <div class="field-block">
+                <div class="field-top">
+                    <label for="capInputA">启动资金 (USDT)</label>
+                    <span style="font-size:11px;color:#7dd3fc;">可自由输入任意金额</span>
+                </div>
+                <div class="num-box">
+                    <input type="number" id="capInputA" class="num" min="0" step="100" value="1000" inputmode="decimal">
+                    <span style="color:#7dd3fc;">U</span>
+                </div>
+                <div class="cap-chips" id="capChipsA">
+                    <button type="button" class="cap-chip num" data-plan="A" data-cap="100">100</button>
+                    <button type="button" class="cap-chip num" data-plan="A" data-cap="500">500</button>
+                    <button type="button" class="cap-chip num active" data-plan="A" data-cap="1000">1000</button>
+                    <button type="button" class="cap-chip num" data-plan="A" data-cap="2000">2000</button>
+                    <button type="button" class="cap-chip num" data-plan="A" data-cap="5000">5000</button>
+                </div>
+            </div>
+
+            <!-- 首存豪礼加赠 -->
+            <div class="toggle-card">
+                <div class="toggle-row">
+                    <span class="toggle-title">首存豪礼加赠</span>
+                    <button type="button" class="toggle-btn on" id="firstDepBtnA">开启首存加赠</button>
+                </div>
+                <div class="live-stat-line num" id="firstDepStatA">首存加赠 +90 U，初始账上 1,090 U</div>
+            </div>
+
+            <!-- 聚金聚宝活动 -->
+            <div class="toggle-card">
+                <div class="toggle-row">
+                    <span class="toggle-title">聚金聚宝（每10天循环）</span>
+                    <button type="button" class="toggle-btn on" id="jubaoBtnA">固定领聚宝</button>
+                </div>
+                <div class="live-stat-line num" id="jubaoStatA">累计领聚宝 0 次，共 +0 U</div>
+            </div>
+
+            <!-- 第一阶直属下级 -->
+            <div class="toggle-card">
+                <div class="toggle-row">
+                    <span class="toggle-title">直推下级人数</span>
+                    <span style="font-size:11px;color:#64748b;">每日收益3%滚存</span>
+                </div>
+                <div class="seg-row-4" id="subCountRowA">
+                    <button type="button" class="seg-pill active" data-plan="A" data-subcount="0">0人</button>
+                    <button type="button" class="seg-pill" data-plan="A" data-subcount="1">1人</button>
+                    <button type="button" class="seg-pill" data-plan="A" data-subcount="2">2人</button>
+                    <button type="button" class="seg-pill" data-plan="A" data-subcount="3">3人</button>
+                </div>
+
+                <div class="sub-detail-box hidden" id="subDetailA">
+                    <div>
+                        <div class="sub-mini-label">
+                            <span>下级每人启动资金（含首存礼）</span>
+                            <span class="num" id="subBonusHintA" style="color:#34d399;">2000U+赠200U</span>
+                        </div>
+                        <div class="seg-row-3" id="subCapRowA">
+                            <button type="button" class="seg-pill num" data-plan="A" data-subcap="100">100 U</button>
+                            <button type="button" class="seg-pill num" data-plan="A" data-subcap="1000">1000 U</button>
+                            <button type="button" class="seg-pill num active" data-plan="A" data-subcap="2000">2000 U</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="sub-mini-label">
+                            <span>下级聚宝设置</span>
+                        </div>
+                        <div class="seg-row-2" id="subJubaoRowA">
+                            <button type="button" class="seg-pill active" data-plan="A" data-subjubao="1">下级领聚宝</button>
+                            <button type="button" class="seg-pill" data-plan="A" data-subjubao="0">下级不领</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="live-stat-line muted num" id="subCommStatA">下级累计佣金 +0.00 U</div>
+            </div>
+
+            <!-- 方案 A 收益明细汇总 -->
+            <div class="summary-list num">
+                <div class="sum-item">
+                    <span>初始入账（本金+首存礼）</span>
+                    <strong id="sumInitA">1,090.00 U</strong>
+                </div>
+                <div class="sum-item">
+                    <span>做单复利净赚（扣10%费）</span>
+                    <strong class="green" id="sumTradeA">+889.12 U</strong>
+                </div>
+                <div class="sum-item">
+                    <span>聚金聚宝累计回馈</span>
+                    <strong class="gold" id="sumJubaoA">+0.00 U</strong>
+                </div>
+                <div class="sum-item">
+                    <span>直推下级 3% 累计佣金</span>
+                    <strong class="green" id="sumCommA">+0.00 U</strong>
+                </div>
+                <div class="sum-total">
+                    <span>方案 A 期末总资产</span>
+                    <span id="sumTotalA">1,979.12 U</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 方案 B（推荐配置） -->
+        <div class="card plan-card plan-b" id="panelPlanB">
+            <div class="plan-head">
+                <span class="plan-badge">方案 B（推荐配置）</span>
+                <span style="font-size:11.5px;color:#ffd166;">进阶配置</span>
+            </div>
+
+            <!-- 启动资金 -->
+            <div class="field-block">
+                <div class="field-top">
+                    <label for="capInputB">启动资金 (USDT)</label>
+                    <span style="font-size:11px;color:#ffd166;">可自由输入任意金额</span>
+                </div>
+                <div class="num-box">
+                    <input type="number" id="capInputB" class="num" min="0" step="100" value="2000" inputmode="decimal">
+                    <span style="color:#ffd166;">U</span>
+                </div>
+                <div class="cap-chips" id="capChipsB">
+                    <button type="button" class="cap-chip num" data-plan="B" data-cap="100">100</button>
+                    <button type="button" class="cap-chip num" data-plan="B" data-cap="500">500</button>
+                    <button type="button" class="cap-chip num" data-plan="B" data-cap="1000">1000</button>
+                    <button type="button" class="cap-chip num active" data-plan="B" data-cap="2000">2000</button>
+                    <button type="button" class="cap-chip num" data-plan="B" data-cap="5000">5000</button>
+                </div>
+            </div>
+
+            <!-- 首存豪礼加赠 -->
+            <div class="toggle-card">
+                <div class="toggle-row">
+                    <span class="toggle-title">首存豪礼加赠</span>
+                    <button type="button" class="toggle-btn on" id="firstDepBtnB">开启首存加赠</button>
+                </div>
+                <div class="live-stat-line num" id="firstDepStatB">首存加赠 +200 U，初始账上 2,200 U</div>
+            </div>
+
+            <!-- 聚金聚宝活动 -->
+            <div class="toggle-card">
+                <div class="toggle-row">
+                    <span class="toggle-title">聚金聚宝（每10天循环）</span>
+                    <button type="button" class="toggle-btn on" id="jubaoBtnB">固定领聚宝</button>
+                </div>
+                <div class="live-stat-line num" id="jubaoStatB">累计领聚宝 3 次，共 +118 U</div>
+            </div>
+
+            <!-- 第一阶直属下级 -->
+            <div class="toggle-card">
+                <div class="toggle-row">
+                    <span class="toggle-title">直推下级人数</span>
+                    <span style="font-size:11px;color:#64748b;">每日收益3%滚存</span>
+                </div>
+                <div class="seg-row-4" id="subCountRowB">
+                    <button type="button" class="seg-pill active" data-plan="B" data-subcount="0">0人</button>
+                    <button type="button" class="seg-pill" data-plan="B" data-subcount="1">1人</button>
+                    <button type="button" class="seg-pill" data-plan="B" data-subcount="2">2人</button>
+                    <button type="button" class="seg-pill" data-plan="B" data-subcount="3">3人</button>
+                </div>
+
+                <div class="sub-detail-box hidden" id="subDetailB">
+                    <div>
+                        <div class="sub-mini-label">
+                            <span>下级每人启动资金（含首存礼）</span>
+                            <span class="num" id="subBonusHintB" style="color:#34d399;">2000U+赠200U</span>
+                        </div>
+                        <div class="seg-row-3" id="subCapRowB">
+                            <button type="button" class="seg-pill num" data-plan="B" data-subcap="100">100 U</button>
+                            <button type="button" class="seg-pill num" data-plan="B" data-subcap="1000">1000 U</button>
+                            <button type="button" class="seg-pill num active" data-plan="B" data-subcap="2000">2000 U</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="sub-mini-label">
+                            <span>下级聚宝设置</span>
+                        </div>
+                        <div class="seg-row-2" id="subJubaoRowB">
+                            <button type="button" class="seg-pill active" data-plan="B" data-subjubao="1">下级领聚宝</button>
+                            <button type="button" class="seg-pill" data-plan="B" data-subjubao="0">下级不领</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="live-stat-line muted num" id="subCommStatB">下级累计佣金 +0.00 U</div>
+            </div>
+
+            <!-- 方案 B 收益明细汇总 -->
+            <div class="summary-list num">
+                <div class="sum-item">
+                    <span>初始入账（本金+首存礼）</span>
+                    <strong id="sumInitB">2,200.00 U</strong>
+                </div>
+                <div class="sum-item">
+                    <span>做单复利净赚（扣10%费）</span>
+                    <strong class="green" id="sumTradeB">+1,960.30 U</strong>
+                </div>
+                <div class="sum-item">
+                    <span>聚金聚宝累计回馈</span>
+                    <strong class="gold" id="sumJubaoB">+118.00 U</strong>
+                </div>
+                <div class="sum-item">
+                    <span>直推下级 3% 累计佣金</span>
+                    <strong class="green" id="sumCommB">+0.00 U</strong>
+                </div>
+                <div class="sum-total">
+                    <span>方案 B 期末总资产</span>
+                    <span id="sumTotalB">4,278.30 U</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 5. 底部可折叠阶梯对照表与算法规则说明 -->
+    <details class="ref-details">
+        <summary>
+            <span>查看「聚金聚宝 & 首存豪礼」阶梯表与完整算法规则</span>
+            <span class="chev">▼</span>
+        </summary>
+        <div class="ref-content">
+            <div class="ref-tables">
+                <!-- 9档聚金聚宝回馈礼金表 -->
+                <div class="tbl-box">
+                    <div class="tbl-head">聚金聚宝回馈礼金表（每10天循环）</div>
+                    <table class="ref-tbl num">
+                        <thead>
+                            <tr>
+                                <th>账上资金达到</th>
+                                <th>回馈礼金</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>≥ 88,888 U</td><td>+1,388 U</td></tr>
+                            <tr><td>≥ 38,888 U</td><td>+588 U</td></tr>
+                            <tr><td>≥ 28,888 U</td><td>+438 U</td></tr>
+                            <tr><td>≥ 16,888 U</td><td>+258 U</td></tr>
+                            <tr><td>≥ 8,888 U</td><td>+138 U</td></tr>
+                            <tr><td>≥ 6,888 U</td><td>+108 U</td></tr>
+                            <tr><td>≥ 5,888 U</td><td>+88 U</td></tr>
+                            <tr><td>≥ 3,888 U</td><td>+58 U</td></tr>
+                            <tr><td>≥ 2,088 U</td><td>+30 U</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 10档首存豪礼加赠表 -->
+                <div class="tbl-box">
+                    <div class="tbl-head">首存豪礼加赠表（最高赠200U）</div>
+                    <table class="ref-tbl num">
+                        <thead>
+                            <tr>
+                                <th>首次充值金额</th>
+                                <th>加赠礼金</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>≥ 2,000 U</td><td>+200 U</td></tr>
+                            <tr><td>≥ 1,700 U</td><td>+170 U</td></tr>
+                            <tr><td>≥ 1,500 U</td><td>+150 U</td></tr>
+                            <tr><td>≥ 1,300 U</td><td>+130 U</td></tr>
+                            <tr><td>≥ 1,100 U</td><td>+110 U</td></tr>
+                            <tr><td>≥ 900 U</td><td>+90 U</td></tr>
+                            <tr><td>≥ 700 U</td><td>+70 U</td></tr>
+                            <tr><td>≥ 500 U</td><td>+50 U</td></tr>
+                            <tr><td>≥ 300 U</td><td>+30 U</td></tr>
+                            <tr><td>≥ 100 U</td><td>+10 U</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="formula-note">
+                <strong>测算公式与结算机制说明：</strong><br>
+                1. <strong>做单频次与手续费：</strong>周一至周五每天 2 单，周六、周日每天 5 单（每周 20 单，30天约 86 单）。每单全额投入并扣除 10% 手续费，即单笔实际净增长率为 <code>每单收益率 × 0.9</code>，单笔结算后本利自动滚动进入下一单。<br>
+                2. <strong>聚金聚宝循环规则：</strong>开启后，当账上资金首次达到或超过 2,088 U（含第 1 天首充加赠后直接达标）立即领取对应最高档位礼金并计入本金滚存；此后每隔 10 天（<code>当前天数 - 上次领取天数 ≥ 10</code>）按当日账上资金自动复领。<br>
+                3. <strong>直推下级 3% 滚存：</strong>每日同步计算第一阶直属下级的做单净收益与聚宝礼金，将每位下级当日总收益的 3% 汇入上级账户，从次日起参与上级账户的复利滚存。
+            </div>
+        </div>
+    </details>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    // 10档首存豪礼阶梯表
+    const FIRST_DEPOSIT_TIERS = [
+        { min: 2000, bonus: 200 },
+        { min: 1700, bonus: 170 },
+        { min: 1500, bonus: 150 },
+        { min: 1300, bonus: 130 },
+        { min: 1100, bonus: 110 },
+        { min: 900,  bonus: 90 },
+        { min: 700,  bonus: 70 },
+        { min: 500,  bonus: 50 },
+        { min: 300,  bonus: 30 },
+        { min: 100,  bonus: 10 }
+    ];
+
+    // 9档聚金聚宝阶梯表
+    const JUBAO_TIERS = [
+        { min: 88888, bonus: 1388 },
+        { min: 38888, bonus: 588 },
+        { min: 28888, bonus: 438 },
+        { min: 16888, bonus: 258 },
+        { min: 8888,  bonus: 138 },
+        { min: 6888,  bonus: 108 },
+        { min: 5888,  bonus: 88 },
+        { min: 3888,  bonus: 58 },
+        { min: 2088,  bonus: 30 }
+    ];
+
+    // 4个快捷对比预设场景
+    const PRESET_CONFIGS = {
+        capital: {
+            days: 30,
+            singleRate: 0.80,
+            A: { capital: 1000, firstDep: true, jubao: true, subCount: 0, subCap: 2000, subJubao: true },
+            B: { capital: 2000, firstDep: true, jubao: true, subCount: 0, subCap: 2000, subJubao: true }
+        },
+        jubao: {
+            days: 30,
+            singleRate: 0.80,
+            A: { capital: 2000, firstDep: true, jubao: false, subCount: 0, subCap: 2000, subJubao: true },
+            B: { capital: 2000, firstDep: true, jubao: true,  subCount: 0, subCap: 2000, subJubao: true }
+        },
+        downline: {
+            days: 30,
+            singleRate: 0.80,
+            A: { capital: 2000, firstDep: true, jubao: true, subCount: 0, subCap: 2000, subJubao: true },
+            B: { capital: 2000, firstDep: true, jubao: true, subCount: 3, subCap: 2000, subJubao: true }
+        },
+        full: {
+            days: 90,
+            singleRate: 0.80,
+            A: { capital: 100,  firstDep: false, jubao: false, subCount: 0, subCap: 2000, subJubao: true },
+            B: { capital: 2000, firstDep: true,  jubao: true,  subCount: 3, subCap: 2000, subJubao: true }
+        }
+    };
+
+    // 核心应用状态
+    const state = {
+        activePreset: 'capital',
+        days: 30,
+        singleRate: 0.80,
+        scrubIndex: null,
+        A: { capital: 1000, firstDep: true, jubao: true, subCount: 0, subCap: 2000, subJubao: true },
+        B: { capital: 2000, firstDep: true, jubao: true, subCount: 0, subCap: 2000, subJubao: true }
+    };
+
+    // 快捷获取元素
+    const $ = (id) => document.getElementById(id);
+
+    // 图表缓存数据
+    let timelineA = [];
+    let timelineB = [];
+    let plotMetrics = null;
+
+    // 金额格式化
+    function formatU(val, showPlus = false) {
+        if (!isFinite(val)) return '0.00 U';
+        const formatted = Math.abs(val).toLocaleString('zh-CN', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+        const sign = val < -0.0001 ? '-' : (showPlus && val > 0.0001 ? '+' : '');
+        return `${sign}${formatted} U`;
+    }
+
+    function formatShortAxis(val) {
+        if (val >= 100000) return (val / 10000).toFixed(0) + '万';
+        if (val >= 10000) return (val / 10000).toFixed(1) + '万';
+        return Math.round(val).toLocaleString('zh-CN');
+    }
+
+    // 匹配首存豪礼金额
+    function calcFirstDepositBonus(cap) {
+        const amount = Math.max(0, Number(cap) || 0);
+        for (let i = 0; i < FIRST_DEPOSIT_TIERS.length; i++) {
+            if (amount >= FIRST_DEPOSIT_TIERS[i].min) {
+                return FIRST_DEPOSIT_TIERS[i].bonus;
+            }
+        }
+        return 0;
+    }
+
+    // 匹配聚金聚宝礼金
+    function calcJubaoBonus(balance) {
+        for (let i = 0; i < JUBAO_TIERS.length; i++) {
+            if (balance >= JUBAO_TIERS[i].min) {
+                return JUBAO_TIERS[i].bonus;
+            }
+        }
+        return 0;
+    }
+
+    // 每单收益率 -> 纯做单月化率（按30天86单、扣10%手续费）
+    function singleToMonthly(singlePct) {
+        const s = Math.max(0, Number(singlePct) || 0);
+        return ((Math.pow(1 + (s / 100) * 0.9, 86) - 1) * 100).toFixed(1);
+    }
+
+    // 纯做单月化率 -> 每单收益率
+    function monthlyToSingle(monthlyPct) {
+        const m = Math.max(0, Number(monthlyPct) || 0);
+        return (((Math.pow(1 + m / 100, 1 / 86) - 1) / 0.9) * 100);
+    }
+
+    // 获取第 d 天做单笔数（周一至周五2单，周六日5单）
+    function getDailyOrders(day) {
+        if (day <= 0) return 0;
+        const weekday = ((day - 1) % 7) + 1; // 1..5 平日, 6..7 周末
+        return (weekday === 6 || weekday === 7) ? 5 : 2;
+    }
+
+    /**
+     * 逐日复利、聚宝循环与直推3%佣金精确推演引擎
+     */
+    function simulateAccount(cfg, totalDays, singleRatePct) {
+        const baseCap = Math.max(0, Number(cfg.capital) || 0);
+        const netOrderRate = Math.max(0, (Number(singleRatePct) || 0) / 100) * 0.9;
+
+        // 若有直推下级，先独立跑出单个下级的每日轨迹
+        let subTimeline = null;
+        if (cfg.subCount > 0) {
+            subTimeline = simulateAccount({
+                capital: cfg.subCap,
+                firstDep: true,
+                jubao: cfg.subJubao,
+                subCount: 0,
+                subCap: 0,
+                subJubao: false
+            }, totalDays, singleRatePct);
+        }
+
+        const firstDepBonus = cfg.firstDep ? calcFirstDepositBonus(baseCap) : 0;
+        let balance = baseCap + firstDepBonus;
+
+        let totalTradeProfit = 0;
+        let totalJubao = 0;
+        let jubaoCount = 0;
+        let totalComm = 0;
+        let lastClaimDay = null;
+
+        const points = new Array(totalDays + 1);
+        points[0] = {
+            day: 0,
+            balance,
+            firstDepBonus,
+            totalTradeProfit: 0,
+            totalJubao: 0,
+            jubaoCount: 0,
+            totalComm: 0,
+            dayTradeProfit: 0,
+            dayJubao: 0
+        };
+
+        for (let d = 1; d <= totalDays; d++) {
+            let dayJubao = 0;
+
+            // 1. 做单前检查是否满足聚宝领取（含第1天首存加赠后立即满2088U，或距上次领取已满10天）
+            if (cfg.jubao && (lastClaimDay === null || (d - lastClaimDay >= 10)) && balance >= 2088) {
+                const reward = calcJubaoBonus(balance);
+                balance += reward;
+                dayJubao += reward;
+                totalJubao += reward;
+                jubaoCount += 1;
+                lastClaimDay = d;
+            }
+
+            // 2. 执行当日所有订单复利（平日2单，周末5单，每单按90%账上资金计息）
+            const orders = getDailyOrders(d);
+            const preTradeBal = balance;
+            if (orders > 0 && preTradeBal > 0 && netOrderRate > 0) {
+                balance = preTradeBal * Math.pow(1 + netOrderRate, orders);
+            }
+            const dayTradeProfit = balance - preTradeBal;
+            totalTradeProfit += dayTradeProfit;
+
+            // 3. 做单后若首次突破2088U或满10天周期且当日尚未领过，立即领取聚宝
+            if (cfg.jubao && (lastClaimDay === null || (d - lastClaimDay >= 10)) && balance >= 2088) {
+                const reward = calcJubaoBonus(balance);
+                balance += reward;
+                dayJubao += reward;
+                totalJubao += reward;
+                jubaoCount += 1;
+                lastClaimDay = d;
+            }
+
+            // 4. 结算直推下级当日总收益（做单净赚 + 当日聚宝）的 3% 佣金入账，次日起参与复利
+            if (cfg.subCount > 0 && subTimeline) {
+                const subDayGain = subTimeline[d].dayTradeProfit + subTimeline[d].dayJubao;
+                const comm = cfg.subCount * subDayGain * 0.03;
+                balance += comm;
+                totalComm += comm;
+
+                // 若下级佣金入账后使上级账上资金达到2088U且当日未领，同步触发聚宝
+                if (cfg.jubao && (lastClaimDay === null || (d - lastClaimDay >= 10)) && balance >= 2088) {
+                    const reward = calcJubaoBonus(balance);
+                    balance += reward;
+                    dayJubao += reward;
+                    totalJubao += reward;
+                    jubaoCount += 1;
+                    lastClaimDay = d;
+                }
+            }
+
+            points[d] = {
+                day: d,
+                balance,
+                firstDepBonus,
+                totalTradeProfit,
+                totalJubao,
+                jubaoCount,
+                totalComm,
+                dayTradeProfit,
+                dayJubao
+            };
+        }
+
+        return points;
+    }
+
+    // 刷新页面所有控件外观状态
+    function syncControlsUI() {
+        // 预设按钮高亮
+        document.querySelectorAll('.preset-btn').forEach((btn) => {
+            btn.classList.toggle('active', btn.dataset.preset === state.activePreset);
+        });
+
+        // 周期按钮与滑块
+        $('daysRange').value = state.days;
+        const approxOrders = Math.round((state.days * 20) / 7);
+        $('daysLiveLabel').innerHTML = `当前推演周期：<strong>${state.days}</strong> 天（约 <strong>${approxOrders}</strong> 单）`;
+
+        document.querySelectorAll('.day-pill').forEach((btn) => {
+            btn.classList.toggle('active', Number(btn.dataset.days) === state.days);
+        });
+
+        // 方案 A & B 各自控件
+        ['A', 'B'].forEach((key) => {
+            const cfg = state[key];
+            const capInput = $('capInput' + key);
+            if (document.activeElement !== capInput) {
+                capInput.value = cfg.capital;
+            }
+
+            // 快捷金额按钮
+            document.querySelectorAll(`#capChips${key} .cap-chip`).forEach((btn) => {
+                btn.classList.toggle('active', Number(btn.dataset.cap) === Number(cfg.capital));
+            });
+
+            // 首存豪礼按钮状态
+            const firstDepBtn = $('firstDepBtn' + key);
+            firstDepBtn.classList.toggle('on', cfg.firstDep);
+            firstDepBtn.textContent = cfg.firstDep ? '开启首存加赠' : '不计首存';
+
+            // 聚金聚宝按钮状态
+            const jubaoBtn = $('jubaoBtn' + key);
+            jubaoBtn.classList.toggle('on', cfg.jubao);
+            jubaoBtn.textContent = cfg.jubao ? '固定领聚宝' : '不领聚宝';
+
+            // 下级人数按钮状态
+            document.querySelectorAll(`#subCountRow${key} .seg-pill`).forEach((btn) => {
+                btn.classList.toggle('active', Number(btn.dataset.subcount) === cfg.subCount);
+            });
+
+            // 显示/隐藏下级详细配置
+            const subDetail = $('subDetail' + key);
+            if (cfg.subCount > 0) {
+                subDetail.classList.remove('hidden');
+                const subBonus = calcFirstDepositBonus(cfg.subCap);
+                $('subBonusHint' + key).textContent = `${cfg.subCap}U+赠${subBonus}U`;
+            } else {
+                subDetail.classList.add('hidden');
+            }
+
+            // 下级启动资金按钮
+            document.querySelectorAll(`#subCapRow${key} .seg-pill`).forEach((btn) => {
+                btn.classList.toggle('active', Number(btn.dataset.subcap) === cfg.subCap);
+            });
+
+            // 下级领聚宝按钮
+            document.querySelectorAll(`#subJubaoRow${key} .seg-pill`).forEach((btn) => {
+                btn.classList.toggle('active', (btn.dataset.subjubao === '1') === cfg.subJubao);
+            });
+        });
+    }
+
+    // 计算并更新所有数字展示与图表
+    function recalculateAndRender() {
+        timelineA = simulateAccount(state.A, state.days, state.singleRate);
+        timelineB = simulateAccount(state.B, state.days, state.singleRate);
+
+        const endA = timelineA[state.days];
+        const endB = timelineB[state.days];
+
+        const capA = Math.max(0, Number(state.A.capital) || 0);
+        const capB = Math.max(0, Number(state.B.capital) || 0);
+
+        const profitA = endA.balance - capA;
+        const profitB = endB.balance - capB;
+
+        const roiA = capA > 0 ? (profitA / capA) * 100 : 0;
+        const roiB = capB > 0 ? (profitB / capB) * 100 : 0;
+
+        // 顶部 A / B 摘要卡片
+        $('finalAssetA').textContent = formatU(endA.balance);
+        $('netProfitA').textContent = `净赚 ${formatU(profitA, true)}`;
+        $('roiBadgeA').textContent = `${roiA >= 0 ? '+' : ''}${roiA.toFixed(1)}%`;
+
+        $('finalAssetB').textContent = formatU(endB.balance);
+        $('netProfitB').textContent = `净赚 ${formatU(profitB, true)}`;
+        $('roiBadgeB').textContent = `${roiB >= 0 ? '+' : ''}${roiB.toFixed(1)}%`;
+
+        // 顶部核心收益差额高亮
+        const diff = profitB - profitA;
+        const diffDot = $('diffDot');
+        const diffAmt = $('diffAmountText');
+        diffDot.classList.remove('blue');
+        diffAmt.classList.remove('blue');
+
+        if (Math.abs(diff) < 0.005) {
+            $('diffTitleText').textContent = '方案 A 与方案 B 净赚持平';
+            diffAmt.textContent = '0.00 U';
+            $('diffPctText').textContent = `${state.days}天推演 · 两者最终收益相同`;
+        } else if (diff > 0) {
+            $('diffTitleText').textContent = '方案 B 比方案 A 多赚';
+            diffAmt.textContent = formatU(diff, true);
+            if (profitA > 0.01) {
+                const boost = ((profitB - profitA) / profitA) * 100;
+                $('diffPctText').textContent = `纯利润高出 +${boost.toFixed(1)}%`;
+            } else {
+                $('diffPctText').textContent = `${state.days}天推演 · 方案 B 显著领先`;
+            }
+        } else {
+            diffDot.classList.add('blue');
+            diffAmt.classList.add('blue');
+            $('diffTitleText').textContent = '方案 A 比方案 B 多赚';
+            diffAmt.textContent = formatU(Math.abs(diff), true);
+            if (profitB > 0.01) {
+                const boost = ((profitA - profitB) / profitB) * 100;
+                $('diffPctText').textContent = `纯利润高出 +${boost.toFixed(1)}%`;
+            } else {
+                $('diffPctText').textContent = `${state.days}天推演 · 方案 A 显著领先`;
+            }
+        }
+
+        // 更新方案 A & B 卡片内实时统计文案
+        ['A', 'B'].forEach((key) => {
+            const cfg = state[key];
+            const end = key === 'A' ? endA : endB;
+            const cap = key === 'A' ? capA : capB;
+
+            const firstDepLine = $('firstDepStat' + key);
+            if (cfg.firstDep) {
+                firstDepLine.textContent = `首存加赠 +${end.firstDepBonus.toLocaleString('zh-CN')} U，初始账上 ${(cap + end.firstDepBonus).toLocaleString('zh-CN')} U`;
+                firstDepLine.classList.remove('muted');
+            } else {
+                firstDepLine.textContent = `不计首存加赠，初始账上 ${cap.toLocaleString('zh-CN')} U`;
+                firstDepLine.classList.add('muted');
+            }
+
+            const jubaoLine = $('jubaoStat' + key);
+            if (cfg.jubao) {
+                jubaoLine.textContent = `累计领聚宝 ${end.jubaoCount} 次，共 +${end.totalJubao.toLocaleString('zh-CN')} U`;
+                jubaoLine.classList.remove('muted');
+            } else {
+                jubaoLine.textContent = '未开启聚金聚宝回馈';
+                jubaoLine.classList.add('muted');
+            }
+
+            const commLine = $('subCommStat' + key);
+            commLine.textContent = `下级累计佣金 ${formatU(end.totalComm, true)}`;
+            commLine.classList.toggle('muted', cfg.subCount === 0);
+
+            $('sumInit' + key).textContent = formatU(cap + end.firstDepBonus);
+            $('sumTrade' + key).textContent = formatU(end.totalTradeProfit, true);
+            $('sumJubao' + key).textContent = formatU(end.totalJubao, true);
+            $('sumComm' + key).textContent = formatU(end.totalComm, true);
+            $('sumTotal' + key).textContent = formatU(end.balance);
+        });
+
+        drawGrowthChart();
+    }
+
+    // 计算美观的 Y 轴最大值
+    function getNiceMax(maxVal) {
+        if (maxVal <= 0) return 1000;
+        const target = maxVal * 1.08;
+        const mag = Math.pow(10, Math.floor(Math.log10(target)));
+        const norm = target / mag;
+        let mult = 10;
+        if (norm <= 1.2) mult = 1.2;
+        else if (norm <= 1.5) mult = 1.5;
+        else if (norm <= 2) mult = 2;
+        else if (norm <= 2.5) mult = 2.5;
+        else if (norm <= 3) mult = 3;
+        else if (norm <= 4) mult = 4;
+        else if (norm <= 5) mult = 5;
+        else if (norm <= 6) mult = 6;
+        else if (norm <= 8) mult = 8;
+        return mult * mag;
+    }
+
+    // Retina 高清 HTML5 Canvas 绘制双曲线对比图
+    function drawGrowthChart() {
+        const canvas = $('growthCanvas');
+        const box = $('canvasBox');
+        const rect = box.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return;
+
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.round(rect.width * dpr);
+        canvas.height = Math.round(rect.height * dpr);
+
+        const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
+
+        const w = rect.width;
+        const h = rect.height;
+        const pad = { top: 14, right: 10, bottom: 22, left: 48 };
+        const plotW = Math.max(10, w - pad.left - pad.right);
+        const plotH = Math.max(10, h - pad.top - pad.bottom);
+
+        ctx.clearRect(0, 0, w, h);
+
+        let maxVal = 0;
+        for (let i = 0; i < timelineA.length; i++) {
+            maxVal = Math.max(maxVal, timelineA[i].balance, timelineB[i].balance);
+        }
+        const yMax = getNiceMax(maxVal);
+
+        plotMetrics = { pad, plotW, plotH, len: timelineA.length };
+
+        const toX = (idx) => {
+            if (timelineA.length <= 1) return pad.left;
+            return pad.left + (idx / (timelineA.length - 1)) * plotW;
+        };
+        const toY = (val) => {
+            const pct = val / (yMax || 1);
+            return pad.top + plotH - pct * plotH;
+        };
+
+        // 网格线与左侧刻度
+        ctx.font = '500 10px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        const gridCount = 4;
+        for (let i = 0; i <= gridCount; i++) {
+            const v = (yMax / gridCount) * i;
+            const y = toY(v);
+            ctx.beginPath();
+            ctx.strokeStyle = i === 0 ? 'rgba(148, 163, 184, 0.25)' : 'rgba(148, 163, 184, 0.1)';
+            ctx.lineWidth = 1;
+            ctx.moveTo(pad.left, y);
+            ctx.lineTo(pad.left + plotW, y);
+            ctx.stroke();
+
+            ctx.fillStyle = '#64748b';
+            ctx.fillText(formatShortAxis(v), pad.left - 6, y);
+        }
+
+        // 底部天数刻度
+        const lastIdx = timelineA.length - 1;
+        const xTicks = [0, Math.round(lastIdx * 0.25), Math.round(lastIdx * 0.5), Math.round(lastIdx * 0.75), lastIdx];
+        ctx.fillStyle = '#64748b';
+        ctx.textBaseline = 'top';
+        xTicks.forEach((idx, i) => {
+            const x = toX(idx);
+            ctx.textAlign = i === 0 ? 'left' : (i === xTicks.length - 1 ? 'right' : 'center');
+            ctx.fillText(idx === 0 ? '初始' : `${idx}天`, x, pad.top + plotH + 5);
+        });
+
+        // 方案 B 金色柔和填充区域
+        ctx.save();
+        ctx.beginPath();
+        timelineB.forEach((pt, idx) => {
+            const x = toX(idx);
+            const y = toY(pt.balance);
+            if (idx === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        });
+        ctx.lineTo(toX(lastIdx), pad.top + plotH);
+        ctx.lineTo(toX(0), pad.top + plotH);
+        ctx.closePath();
+
+        const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + plotH);
+        grad.addColorStop(0, 'rgba(245, 176, 65, 0.28)');
+        grad.addColorStop(1, 'rgba(245, 176, 65, 0.01)');
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.restore();
+
+        // 方案 A 青蓝曲线
+        ctx.save();
+        ctx.beginPath();
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 2.2;
+        ctx.lineJoin = 'round';
+        timelineA.forEach((pt, idx) => {
+            const x = toX(idx);
+            const y = toY(pt.balance);
+            if (idx === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+        ctx.restore();
+
+        // 方案 B 亮金曲线
+        ctx.save();
+        ctx.beginPath();
+        ctx.strokeStyle = '#f5b041';
+        ctx.lineWidth = 2.7;
+        ctx.lineJoin = 'round';
+        timelineB.forEach((pt, idx) => {
+            const x = toX(idx);
+            const y = toY(pt.balance);
+            if (idx === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+        ctx.restore();
+
+        // 交互准星与浮动查看提示
+        const badge = $('inspectBadge');
+        if (state.scrubIndex !== null && state.scrubIndex >= 0 && state.scrubIndex <= lastIdx) {
+            const idx = state.scrubIndex;
+            const x = toX(idx);
+            const yA = toY(timelineA[idx].balance);
+            const yB = toY(timelineB[idx].balance);
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.setLineDash([3, 3]);
+            ctx.strokeStyle = 'rgba(248, 250, 252, 0.45)';
+            ctx.lineWidth = 1.2;
+            ctx.moveTo(x, pad.top);
+            ctx.lineTo(x, pad.top + plotH);
+            ctx.stroke();
+            ctx.restore();
+
+            drawCirclePoint(ctx, x, yA, '#38bdf8', 4.5);
+            drawCirclePoint(ctx, x, yB, '#ffd166', 5);
+
+            const gap = timelineB[idx].balance - timelineA[idx].balance;
+            const gapStr = gap >= 0 ? `+${gap.toFixed(2)} U` : `${gap.toFixed(2)} U`;
+            badge.innerHTML =
+                `<div style="color:#ffd166;font-weight:700;">第 ${idx} 天</div>` +
+                `<div>方案A: <span style="color:#7dd3fc;font-weight:700;">${timelineA[idx].balance.toFixed(2)} U</span></div>` +
+                `<div>方案B: <span style="color:#ffd166;font-weight:700;">${timelineB[idx].balance.toFixed(2)} U</span></div>` +
+                `<div>差距: <span style="color:#34d399;font-weight:800;">${gapStr}</span></div>`;
+            badge.classList.add('visible');
+
+            const boxW = box.clientWidth;
+            const badgeW = badge.offsetWidth || 155;
+            let left = x + 10;
+            if (left + badgeW > boxW - 6) {
+                left = x - badgeW - 10;
+            }
+            badge.style.left = Math.max(6, left) + 'px';
+        } else {
+            const endX = toX(lastIdx);
+            drawCirclePoint(ctx, endX, toY(timelineA[lastIdx].balance), '#38bdf8', 3.8);
+            drawCirclePoint(ctx, endX, toY(timelineB[lastIdx].balance), '#ffd166', 4.2);
+            badge.classList.remove('visible');
+        }
+    }
+
+    function drawCirclePoint(ctx, x, y, color, radius) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x, y, radius + 2, 0, Math.PI * 2);
+        ctx.fillStyle = '#0b0e14';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.restore();
+    }
+
+    function scrubAtClientX(clientX) {
+        if (!plotMetrics) return;
+        const rect = $('growthCanvas').getBoundingClientRect();
+        const relX = clientX - rect.left;
+        const clamped = Math.max(plotMetrics.pad.left, Math.min(plotMetrics.pad.left + plotMetrics.plotW, relX));
+        const ratio = (clamped - plotMetrics.pad.left) / plotMetrics.plotW;
+        const idx = Math.round(ratio * (plotMetrics.len - 1));
+        if (state.scrubIndex !== idx) {
+            state.scrubIndex = idx;
+            drawGrowthChart();
+        }
+    }
+
+    function clearPresetHighlight() {
+        state.activePreset = null;
+        document.querySelectorAll('.preset-btn').forEach((b) => b.classList.remove('active'));
+    }
+
+    // 绑定所有交互监听器
+    function bindEvents() {
+        // 1. 4个场景预设按钮
+        document.querySelectorAll('.preset-btn').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const preset = PRESET_CONFIGS[btn.dataset.preset];
+                if (!preset) return;
+                state.activePreset = btn.dataset.preset;
+                state.days = preset.days;
+                state.singleRate = preset.singleRate;
+                state.scrubIndex = null;
+                state.A = { ...preset.A };
+                state.B = { ...preset.B };
+
+                $('singleRateInput').value = state.singleRate.toFixed(2);
+                $('monthlyRateInput').value = singleToMonthly(state.singleRate);
+
+                syncControlsUI();
+                recalculateAndRender();
+            });
+        });
+
+        // 2. 推演周期快捷按钮
+        document.querySelectorAll('.day-pill').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                state.days = parseInt(btn.dataset.days, 10);
+                state.scrubIndex = null;
+                clearPresetHighlight();
+                syncControlsUI();
+                recalculateAndRender();
+            });
+        });
+
+        // 3. 推演周期滑块
+        $('daysRange').addEventListener('input', (e) => {
+            state.days = parseInt(e.target.value, 10) || 1;
+            state.scrubIndex = null;
+            clearPresetHighlight();
+            syncControlsUI();
+            recalculateAndRender();
+        });
+
+        // 4. 双向联动收益率输入框
+        $('singleRateInput').addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            if (isNaN(val) || val < 0) return;
+            state.singleRate = val;
+            $('monthlyRateInput').value = singleToMonthly(val);
+            clearPresetHighlight();
+            recalculateAndRender();
+        });
+
+        $('monthlyRateInput').addEventListener('input', (e) => {
+            const mVal = parseFloat(e.target.value);
+            if (isNaN(mVal) || mVal < 0) return;
+            const sVal = monthlyToSingle(mVal);
+            state.singleRate = sVal;
+            $('singleRateInput').value = sVal.toFixed(2);
+            clearPresetHighlight();
+            recalculateAndRender();
+        });
+
+        // 5. 方案 A & B 独立控件绑定
+        ['A', 'B'].forEach((key) => {
+            // 启动资金输入框
+            $('capInput' + key).addEventListener('input', (e) => {
+                const v = parseFloat(e.target.value);
+                state[key].capital = isNaN(v) || v < 0 ? 0 : v;
+                clearPresetHighlight();
+                syncControlsUI();
+                recalculateAndRender();
+            });
+
+            // 启动资金快捷金额按钮
+            document.querySelectorAll(`#capChips${key} .cap-chip`).forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    state[key].capital = Number(btn.dataset.cap);
+                    clearPresetHighlight();
+                    syncControlsUI();
+                    recalculateAndRender();
+                });
+            });
+
+            // 首存豪礼开关按钮
+            $('firstDepBtn' + key).addEventListener('click', () => {
+                state[key].firstDep = !state[key].firstDep;
+                clearPresetHighlight();
+                syncControlsUI();
+                recalculateAndRender();
+            });
+
+            // 聚金聚宝开关按钮
+            $('jubaoBtn' + key).addEventListener('click', () => {
+                state[key].jubao = !state[key].jubao;
+                clearPresetHighlight();
+                syncControlsUI();
+                recalculateAndRender();
+            });
+
+            // 直推下级人数选择
+            document.querySelectorAll(`#subCountRow${key} .seg-pill`).forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    state[key].subCount = Number(btn.dataset.subcount);
+                    clearPresetHighlight();
+                    syncControlsUI();
+                    recalculateAndRender();
+                });
+            });
+
+            // 下级每人启动资金选择
+            document.querySelectorAll(`#subCapRow${key} .seg-pill`).forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    state[key].subCap = Number(btn.dataset.subcap);
+                    clearPresetHighlight();
+                    syncControlsUI();
+                    recalculateAndRender();
+                });
+            });
+
+            // 下级聚宝设置选择
+            document.querySelectorAll(`#subJubaoRow${key} .seg-pill`).forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    state[key].subJubao = btn.dataset.subjubao === '1';
+                    clearPresetHighlight();
+                    syncControlsUI();
+                    recalculateAndRender();
+                });
+            });
+        });
+
+        // 6. Canvas 自身触控与鼠标交互（绝不绑定到 window/document 阻塞页面滚动或点击）
+        const canvas = $('growthCanvas');
+        canvas.addEventListener('mousemove', (e) => {
+            scrubAtClientX(e.clientX);
+        });
+        canvas.addEventListener('mouseleave', () => {
+            state.scrubIndex = null;
+            drawGrowthChart();
+        });
+        canvas.addEventListener('touchstart', (e) => {
+            if (e.touches && e.touches.length > 0) {
+                scrubAtClientX(e.touches[0].clientX);
+            }
+        }, { passive: true });
+        canvas.addEventListener('touchmove', (e) => {
+            if (e.touches && e.touches.length > 0) {
+                scrubAtClientX(e.touches[0].clientX);
+            }
+        }, { passive: true });
+
+        // 屏幕尺寸变化时重绘高清曲线
+        window.addEventListener('resize', drawGrowthChart);
+    }
+
+    function initApp() {
+        $('singleRateInput').value = state.singleRate.toFixed(2);
+        $('monthlyRateInput').value = singleToMonthly(state.singleRate);
+        syncControlsUI();
+        bindEvents();
+        recalculateAndRender();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initApp);
+    } else {
+        initApp();
+    }
+})();
+</script>
+</body>
+</html>
